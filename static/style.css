@@ -1,0 +1,139 @@
+/* General Page */
+body {
+  margin: 0;
+  font-family: "Poppins", Arial, sans-serif;
+  background: #eef5ea;
+}
+
+/* Header */
+h2 {
+  text-align: center;
+  margin: 10px 0;
+  padding: 15px;
+  font-size: 26px;
+  font-weight: bold;
+  color: white;
+  background: linear-gradient(90deg, #1e7e34, #2eb82e, #28a745);
+  border-radius: 10px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.25);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+/* Map */
+#map {
+  height: 55vh;
+  width: 100%;
+  border-bottom: 3px solid #1e7e34;
+}
+
+/* Dashboard Wrapper */
+#dashboard {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-around;
+  background: white;
+  padding: 10px;
+  border-top: 2px solid #ccc;
+  box-shadow: 0 -2px 8px rgba(0,0,0,0.05);
+}
+
+/* Generic Panel */
+.panel {
+  flex: 1 1 220px;
+  margin: 6px;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-color: #fafafa;
+  max-height: 260px;
+  overflow-y: auto;
+  position: relative;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+/* Soft overlay for readability */
+.panel::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(255,255,255,0.9);
+  border-radius: 10px;
+  z-index: 0;
+}
+.panel * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Panel titles */
+.panel h3 {
+  text-align: center;
+  font-weight: bold;
+  margin: 0 0 10px 0;
+  padding-bottom: 5px;
+  border-bottom: 2px solid #c9e5c4;
+  color: #1e7e34;
+}
+
+/* Panel backgrounds */
+#bin-status {
+  background-image: url("https://cdn-icons-png.flaticon.com/512/2907/2907253.png");
+}
+#truck-status {
+  background-image: url("https://cdn-icons-png.flaticon.com/512/7439/7439934.png");
+}
+#log-status {
+  background-image: url("https://cdn-icons-png.flaticon.com/512/2099/2099058.png");
+}
+#repair-box {
+  background-image: url("https://cdn-icons-png.flaticon.com/512/2784/2784591.png");
+}
+#chart-box {
+  background-image: url("https://cdn-icons-png.flaticon.com/512/3470/3470433.png");
+}
+
+/* Status items */
+.status-item {
+  padding: 6px 8px;
+  margin: 4px 0;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+}
+.status-good {
+  background: #d4edda;
+  color: #155724;
+}
+.status-bad {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+/* Chart panel */
+#chart-box {
+  flex: 1 1 320px;
+}
+
+/* Worker icon inside repair logs */
+.worker-icon {
+  width: 20px;
+  height: 20px;
+  vertical-align: middle;
+  margin-right: 6px;
+}
+
+/* Scrollbar styling */
+.panel::-webkit-scrollbar {
+  width: 8px;
+}
+.panel::-webkit-scrollbar-thumb {
+  background-color: #ccc;
+  border-radius: 4px;
+}
+.panel::-webkit-scrollbar-thumb:hover {
+  background-color: #888;
+}

@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Smart Waste Management - ELURU (V)</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+</head>
+<body>
+  <h2><b>SMART WASTE MANAGEMENT SYSTEM - ELURU (V), ANDHRA PRADESH</b></h2>
+  <div id="map"></div>
+
+  <div id="dashboard">
+    <div class="panel" id="bin-status">
+      <h3><b>BINS</b></h3>
+      <div id="bin-list"></div>
+    </div>
+    <div class="panel" id="truck-status">
+      <h3><b>TRUCKS</b></h3>
+      <div id="truck-list"></div>
+    </div>
+    <div class="panel" id="log-status">
+      <h3><b>COLLECTION LOG</b></h3>
+      <div id="log-list"></div>
+    </div>
+    <div class="panel" id="repair-box">
+      <h3><b>REPAIR ASSIGNMENT</b></h3>
+      <ul id="repair-log"></ul>
+    </div>
+    <div class="panel" id="chart-box">
+      <h3><b>TRUCK UTILIZATION</b></h3>
+      <canvas id="truckChart"></canvas>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <script>
+    // Map centered on Koppuravuru Village
+    var map = L.map('map').setView([16.7107, 81.0952], 13);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
+
+    var binMarkers = {};
+    var truckMarkers = {};
+    var truckRoutes = {};
+    var dumpyardMarker = null;
+
+    function getBinIcon(fill, status) {
+      let iconUrl = "/static/icons/bin_green.png";
+      if (fill < 50) iconUrl = "/static/icons/bin_green.png";
+      else if (fill < 80) iconUrl = "/static/icons/bin_orange.png";
+      else iconUrl = "/static/icons/bin_red.png";
+      if (status === "failed") iconUrl = "/static/icons/bin_black.png";
+      return L.icon({iconUrl, iconSize:[26,26], iconAnchor:[13,13]});
+    }
+
+    function getTruckIcon() {
+      return L.icon({iconUrl:"/static/icons/truck.png", iconSize:[32,32], iconAnchor:[16,16]});
+    }
+
+    function getDumpyardIcon() {
+      return L.icon({iconUrl:"/static/icons/dumpyard.png", iconSize:[34,34], iconAnchor:[17,17]});
+    }
+
+    const workers = [
+      {name:"Worker1", img:"/static/icons/worker.png"},
+      {name:"Worker2", img:"/static/icons/worker.png"},
+      {name:"Worker3", img:"/static/icons/worker.png"},
+      {name:"Worker4", img:"/static/icons/worker.png"},
+      {name:"Worker5", img:"/static/icons/worker.png"}
+    ];
+    let workerIndex = 0;
+
+    function assignRepair(binId) {
+      let worker = workers[workerIndex];
+      workerIndex = (workerIndex+1)%workers.length;
+      let li = document.createElement("li");
+      li.innerHTML = `<img src="${worker.img}" class="worker-icon"> ${worker.name} repairing ${binId}`;
+      document.getElementById("repair-log").appendChild(li);
+      setTimeout(()=>{
+        li.innerHTML = `<img src="${worker.img}" class="worker-icon"> ✅ ${binId} repaired by ${worker.name}`;
+        li.style.color = "green";
+        let binElement = document.getElementById(binId);
+        if (binElement) {
+          binElement.className = "status-item status-good";
+          binElement.innerText = `${binId} (ALIVE) - 0%`;
+        }
+      },5000);
+    }
+
+    function checkBins() {
+      document.querySelectorAll(".status-bad").forEach(bin=>{
+        assignRepair(bin.id);
+      });
+    }
+    setInterval(checkBins,10000);
+
+    function updateBins(bins) {
+      bins.forEach(bin=>{
+        var marker = binMarkers[bin.id];
+        let icon = getBinIcon(bin.fill, bin.status);
+        if (!marker) {
+          marker = L.marker([bin.lat, bin.lng], {icon}).addTo(map);
+          binMarkers[bin.id] = marker;
+        } else {
+          marker.setLatLng([bin.lat, bin.lng]);
+          marker.setIcon(icon);
+        }
+        marker.bindPopup(`<b>${bin.id}</b><br>Type: ${bin.type}<br>Status: ${bin.status}<br>Fill: ${bin.fill}%`);
+      });
+    }
+
+    function updateCollectors(data) {
+      if (!dumpyardMarker) {
+        dumpyardMarker = L.marker([data.dumpyard.lat, data.dumpyard.lng], {icon:getDumpyardIcon()})
+          .addTo(map).bindPopup("<b>Dumpyard</b>");
+      }
+      data.collectors.forEach(truck=>{
+        var marker = truckMarkers[truck.id];
+        if (!marker) {
+          marker = L.marker([truck.lat, truck.lng], {icon:getTruckIcon()}).addTo(map);
+          truckMarkers[truck.id] = marker;
+        } else {
+          marker.setLatLng([truck.lat, truck.lng]);
+        }
+        marker.bindPopup(`<b>${truck.id}</b><br>Driver: ${truck.driver}`);
+
+        if (truck.route && truck.route.length>1) {
+          if (truckRoutes[truck.id]) {
+            truckRoutes[truck.id].setLatLngs(truck.route);
+          } else {
+            truckRoutes[truck.id] = L.polyline(truck.route,{color:"blue",dashArray:"5,5"}).addTo(map);
+          }
+        } else if (truckRoutes[truck.id]) {
+          map.removeLayer(truckRoutes[truck.id]);
+          delete truckRoutes[truck.id];
+        }
+      });
+    }
+
+    function updateStatusPanels(bins, collectors, log) {
+      document.getElementById("bin-list").innerHTML="";
+      document.getElementById("truck-list").innerHTML="";
+      document.getElementById("log-list").innerHTML="";
+      bins.forEach(bin=>{
+        let div=document.createElement("div");
+        div.className="status-item "+(bin.status==="alive"?"status-good":"status-bad");
+        div.id=bin.id;
+        div.innerText=`${bin.id} (${bin.status.toUpperCase()}) - ${bin.fill}%`;
+        document.getElementById("bin-list").appendChild(div);
+      });
+      collectors.forEach(truck=>{
+        let div=document.createElement("div");
+        div.className="status-item status-good";
+        div.innerText=truck.id+" - "+truck.driver;
+        document.getElementById("truck-list").appendChild(div);
+      });
+      log.forEach(entry=>{
+        let div=document.createElement("div");
+        div.className="status-item status-good";
+        div.innerText=`${entry.time} → ${entry.truck} collected ${entry.bin}`;
+        document.getElementById("log-list").appendChild(div);
+      });
+    }
+
+    let truckChart;
+    function updateTruckChart(collectors) {
+      let labels=collectors.map(t=>t.id);
+      let data=collectors.map(t=>t.collected);
+      if(truckChart){
+        truckChart.data.labels=labels;
+        truckChart.data.datasets[0].data=data;
+        truckChart.update();
+      } else {
+        truckChart=new Chart(document.getElementById("truckChart"),{
+          type:"bar",
+          data:{labels:labels,datasets:[{label:"Bins Collected",data:data,backgroundColor:"rgba(54,162,235,0.7)"}]},
+          options:{scales:{y:{beginAtZero:true}},plugins:{legend:{display:false}}}
+        });
+      }
+    }
+
+    function refreshData(){
+      Promise.all([
+        fetch("/bins").then(r=>r.json()),
+        fetch("/collectors").then(r=>r.json()),
+        fetch("/log").then(r=>r.json())
+      ]).then(([bins,data,log])=>{
+        updateBins(bins);
+        updateCollectors(data);
+        updateStatusPanels(bins,data.collectors,log);
+        updateTruckChart(data.collectors);
+      });
+    }
+    setInterval(refreshData,2000);
+  </script>
+</body>
+</html>
